@@ -2,39 +2,21 @@
 An Arma 3 extension that incorporates Discord and MySql async functionality 
 
 Author: Slep. | Licence: GNU GPL v3
------------------------------------------------
-    ___     ______ _  __
-   /   |   / ____/| |/ /
-  / /| |  / __/   |   / 
- / ___ | / /___  /   |  
-/_/  |_|/_____/ /_/|_| 
+-----------------------------------
 
-
-ExtendedExtension Readme
------------------------------------------------
-
-Setup:
+#Setup:
     Configure the config.json file in /cfg - (Note: Make sure to enable the modules you want to use. I.e if Mysql is enabled, the mysql settings must be configured)
 
-Usage:
-    Predefined:
-        (Function Init) (SERVER)
-        SessionKey = call AEX_LOAD
+#Usage:
 
-        (MySQL Request) (SERVER)
-        [SessionKey, Command, Read] call AEX_MYSQL_ASYNC
-
-        (DiscordAPI) (SERVER)
-        [SessionKey, Message] call AEX_DISCORD_SEND
-
-    Manual:
         (No args)
         "aex" callExtension "<Function>"
 
         (Args)
         "aex" callExtension ["<Function>", [SessionKey, Arg1, Arg2, ...]]
 
-Functions:
+#Functions
+
     Startup:
         load
           - Arguments: None
@@ -54,6 +36,7 @@ Functions:
           - Summary: Makes a request to the specified webhook in config.json to send a Discord message
 
 Status Codes:
+
     MYSQL_NQ_SUCCESS
         - Successfully (Indicates tables have been altered) issued a command to the database without a return value
 
