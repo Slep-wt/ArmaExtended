@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using RGiesecke.DllExport;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 /*
@@ -14,11 +15,12 @@ using System.Threading.Tasks;
 
 namespace aex
 {
-    public class Entry
+    public class EntryPoint
     {
         public static bool init = false;
         internal static string sessionid = Utility.Session.CreateID();
         internal static string[] modules = { "Discord Disabled", "MySql Disabled" };
+        internal static readonly string version = "1.0.00";
 #if is64
         [DllExport("RVExtensionVersion", CallingConvention = CallingConvention.Winapi)]
 #else
@@ -27,7 +29,7 @@ namespace aex
         public static void RvExtensionVersion(StringBuilder output, int outputSize)
         {
             outputSize--;
-            output.Append("1.0.00");
+            output.Append(version);
         }
 #if is64
         [DllExport("RVExtension", CallingConvention = CallingConvention.Winapi)]
@@ -49,7 +51,7 @@ namespace aex
                         
                         Discord.ModuleInit();
                         Mysql.ModuleInit();
-                        string ActiveModules = "[AEX::INIT::MODULES] " + Discord.ModuleActivated + " | " + Mysql.ModuleActivated;
+                        string ActiveModules = "[AEX::INIT::MODULES] " + modules[0] + " | " + modules[1];
                         Utility.Session.LogThis(ActiveModules);
                     }
                     catch (Exception e)
@@ -61,12 +63,11 @@ namespace aex
                 }
                 else
                 {
-                    Utility.Session.LogThis("[AEX::INIT] Extention attempted to reload");
-                    output.Append("INIT_RL_REJECT");
+                    Utility.Session.LogThis("[AEX::INIT] Blocked extension reload");
+                    output.Append(sessionid);
                 }
             }
         }
-
 
 #if is64
         [DllExport("RVExtensionArgs", CallingConvention = CallingConvention.Winapi)]
@@ -113,6 +114,32 @@ namespace aex
                 Utility.Session.LogThis("[AEX::EXCEPTION] " + e.ToString());
                 return 1;
             }
+        }
+
+        public static object DebugEntry(string function, string[] args = null , int timeout = 0)
+        {
+            string fresult = "";
+            switch (function.ToLower())
+            {
+                case "discord.send":
+                        Discord.Send(args[0]);
+                    break;
+                case "mysql:async":
+                    bool Read = Convert.ToBoolean(args[1]);
+                    Task<string> SQLAsync = Mysql.ExecuteAsync(args[0], Read);
+                    SQLAsync.Start();
+                    SQLAsync.Wait();
+                    fresult = SQLAsync.Result;
+                    break;
+                case "utility:genkey":
+
+                default:
+                    fresult = "INVALID_FNC";
+                    break;
+            }
+
+            Thread.Sleep(timeout * 1000);
+            return fresult;
         }
     }
 }

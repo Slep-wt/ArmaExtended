@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using System.IO;
+using System.Reflection;
 using System.Security.Cryptography;
 using Newtonsoft.Json;
 
@@ -22,37 +23,36 @@ namespace aex
 #else
         public static bool x64 = false;
 #endif
-#endregion
+        #endregion
 
-        public static readonly string Dir = Environment.CurrentDirectory;
-        public static readonly string CfgDir = Environment.CurrentDirectory+@"\cfg";
-        public static readonly string CfgJson = Environment.CurrentDirectory + @"\cfg\config.json";
-        public static readonly string LogDir = Environment.CurrentDirectory + @"\Logs";
+        public static readonly string Dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        public static readonly string CfgDir = Dir + @"\cfg";
+        public static readonly string CfgJson = Dir + @"\cfg\config.json";
+        public static readonly string LogDir = Dir + @"\Logs";
 
         public static readonly string rundate = DateTime.Now.ToString("dd-MM-yyyy_hh-mm-ss");
 
         internal static readonly char[] Alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890".ToCharArray();
         internal static readonly int AlphabetLength = Alphabet.Length;
+
         public class Session
         {
             public static string CreateID()
             {
-                var r = new Random();
-                string rchars = "";
-
-                byte[] interm = { };
-                for (var i = 0; i < 9; i++)
-                {
-                    rchars = rchars + Alphabet[r.Next(AlphabetLength)];
-                }
                 using (MD5 x = MD5.Create())
                 {
+                    var r = new Random();
+                    string rchars = "";
+                    for (var i = 0; i < 9; i++)
+                        rchars = rchars + Alphabet[r.Next(AlphabetLength)];
+
+                    byte[] interm = { };
                     interm = x.ComputeHash(Encoding.UTF8.GetBytes(rchars));
+
                     StringBuilder sb = new StringBuilder();
                     foreach (byte i in interm)
-                    {
                         sb.Append(i.ToString("X2"));
-                    }
+
                     return sb.ToString();
                 }
             }
@@ -63,14 +63,11 @@ namespace aex
                 if (Directory.Exists(LogDir))
                 {
                     string filename;
+
                     if (x64)
-                    {
                         filename = "aex_x64_" + rundate + ".log";
-                    }
                     else
-                    {
                         filename = "aex_x86_" + rundate + ".log";
-                    }
                     
                     using (var sw = new StreamWriter(LogDir + @"\" + filename, true, Encoding.UTF8))
                     {

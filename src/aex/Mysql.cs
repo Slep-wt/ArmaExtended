@@ -87,7 +87,7 @@ namespace aex
             if (ModuleActivated)
             {
                 ModuleActivated = (bool)Utility.JSON.readJSON("mysql", "enable");
-                Entry.modules.SetValue("Mysql Enabled", 1);
+                EntryPoint.modules.SetValue("Mysql Enabled", 1);
             }
         }
 
@@ -116,30 +116,30 @@ namespace aex
                     }
                     else
                     {
-                        MySqlDataReader reader = await MySqlHelper.ExecuteReaderAsync(conn.Connection, query);
-
-                    string result = "[";
-                    while (reader.Read())
-                    {
-                        if (reader.FieldCount == 1)
+                        using (MySqlDataReader reader = MySqlHelper.ExecuteReader(conn.Connection, query))
                         {
-                            return reader[0].ToString();
-                        }
-                        else
-                        {
-                            for (var i = 0; i < reader.FieldCount; i++)
+                            string result = "[";
+                            while (reader.Read())
                             {
-                                string stripped = reader[i].ToString();
-                                if (i == 0)
-                                    result += stripped;
+                                if (reader.FieldCount == 1)
+                                {
+                                    return reader[0].ToString();
+                                }
                                 else
-                                    result += ", " + stripped;
+                                {
+                                    for (var i = 0; i < reader.FieldCount; i++)
+                                    {
+                                        string stripped = reader[i].ToString();
+                                        if (i == 0)
+                                            result += stripped;
+                                        else
+                                            result += ", " + stripped;
+                                    }
+                                }
                             }
+                            result += "]";
+                            return result;
                         }
-                    }
-                    result += "]";
-                    reader.Close();
-                    return result;
                     }
                 }
                 return "MYSQL_REQUEST_FAILED";

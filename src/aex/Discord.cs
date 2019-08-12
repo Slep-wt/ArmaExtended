@@ -18,13 +18,12 @@ namespace aex
         internal static readonly string apikey = (string)Utility.JSON.readJSON("discord","apikey");
         internal static readonly string hookname = (string)Utility.JSON.readJSON("discord","username");
         internal static readonly string avatar = (string)Utility.JSON.readJSON("discord","avatar");
-
         internal static void ModuleInit()
         {
             if (ModuleActivated)
             {
                  ModuleActivated = (bool)Utility.JSON.readJSON("discord", "enable");
-                Entry.modules.SetValue("Discord Enabled", 0);
+                EntryPoint.modules.SetValue("Discord Enabled", 0);
             }
         }
 
