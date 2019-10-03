@@ -87,8 +87,8 @@ namespace aex
                 switch (function.ToLower())
                 {
                     case "discord:send":
-                        if (args.Length == 2)
-                            Discord.Send(args[1]);
+                        if (args.Length == 4)
+                            Discord.Send(args[1],args[2],args[3]);
                         else
                             output.Append("Discord:Send::INVALID_ARGS");
                         break;

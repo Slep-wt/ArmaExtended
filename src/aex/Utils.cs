@@ -24,7 +24,7 @@ namespace aex
         public static bool x64 = false;
 #endif
         #endregion
-
+        public static readonly int[] EmbedColors = { 0x2cc510, 0xee7511, 0xffdf00, 0xe80505 }; // Green, Orange, Yellow, Red
         public static readonly string Dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         public static readonly string CfgDir = Dir + @"\cfg";
         public static readonly string CfgJson = Dir + @"\cfg\config.json";
@@ -97,10 +97,10 @@ namespace aex
                 public string DiscordAvatar;
 
                 [JsonProperty("DiscordApid")]
-                public string DiscordApid;
+                public string[] DiscordApid;
 
                 [JsonProperty("DiscordApikey")]
-                public string DiscordApikey;
+                public string[] DiscordApikey;
 
                 [JsonProperty("EnableMysql")]
                 public bool EnableMysql;
@@ -123,7 +123,7 @@ namespace aex
                 [JsonProperty("EnableDebug")]
                 public bool EnableDebug;
             }
-
+            
             internal class RequestFormat
             {
                 [JsonProperty("username")]
@@ -132,8 +132,32 @@ namespace aex
                 [JsonProperty("avatar_url")]
                 public string avatar_url;
 
-                [JsonProperty("content")]
-                public string content;
+                [JsonProperty("embeds")]
+                public Embeds EmbedContent;
+
+                [JsonProperty("contents")]
+                public string contents;
+
+                public class Embeds
+                {
+                    [JsonProperty("title")]
+                    public string title;
+
+                    [JsonProperty("color")]
+                    public int color;
+
+                    [JsonProperty("fields")]
+                    public Fields FieldsContent;
+
+                    internal class Fields
+                    {
+                        [JsonProperty("name")]
+                        public string name;
+
+                        [JsonProperty("value")]
+                        public string fcontent;
+                    }
+                }
             }
 
             internal static bool createJSON()
@@ -143,8 +167,8 @@ namespace aex
                     EnableDiscord = true,
                     DiscordUsername = "<Add the username of your webhook here>",
                     DiscordAvatar = "<Add the url to the avatar of your webhook here>",
-                    DiscordApid = "<Add your webhook ID here>",
-                    DiscordApikey = "<Add your webhook private key here>",
+                    DiscordApid = new string[]{ "<Add your webhook ID's here seperated by commas>", "<Example ID 1>", "<Example ID 2>" },
+                    DiscordApikey = new string[]{ "<Add your webhook private keys here seperated by commas>","<Example Private Key 1>", "<Example Private Key 2>" },
 
                     EnableMysql = true,
 
@@ -170,15 +194,96 @@ namespace aex
                 
             }
 
-            public static string formatRequest(string input)
+            public static string formatRequest(object[] input, bool isEmbed = false)
             {
-                RequestFormat req = new RequestFormat
+
+                string result;
+                if (isEmbed)
                 {
-                    username = Discord.hookname,
-                    avatar_url = Discord.avatar,
-                    content = input
-                };
-                return JsonConvert.SerializeObject(req, Formatting.Indented);
+                    RequestFormat req = new RequestFormat
+                    {
+                        username = Discord.hookname,
+                        avatar_url = Discord.avatar,
+                        EmbedContent = new RequestFormat.Embeds
+                        {
+                            title = (string)input[0],
+                            color = EmbedColors[(int)input[1]],
+                            FieldsContent = new RequestFormat.Embeds.Fields
+                            {
+                                name = (string)input[2],
+                                fcontent = (string)input[3]
+                            }
+                        }
+                    };
+                    result = JsonConvert.SerializeObject(req, Formatting.Indented);
+                }
+                else
+                {
+                    RequestFormat req = new RequestFormat
+                    {
+                        username = Discord.hookname,
+                        avatar_url = Discord.avatar,
+                        contents = (string)input[0]
+                    };
+                    result = JsonConvert.SerializeObject(req, Formatting.Indented);
+                }
+
+                return result;
+            }
+
+
+            public static object[] readJSONArray(string module, string attrib)
+            {
+                if (!(Directory.Exists(CfgDir)))
+                {
+                    Session.LogThis("[AEX::JSON] Config directory missing, creating a new directory.");
+                    Directory.CreateDirectory(CfgDir);
+                }
+                if (!(File.Exists(CfgJson)))
+                {
+                    Session.LogThis("[AEX::JSON] Readable file not found, creating a new json file. Please configure this otherwise the extension will not work.");
+                    createJSON();
+                }
+
+                JSONFormat ds = null;
+
+                try
+                {
+                    ds = JsonConvert.DeserializeObject<JSONFormat>(File.ReadAllText(CfgDir + @"\config.json"));
+                }
+                catch (EntryPointNotFoundException e)
+                {
+                    createJSON();
+                    System.Threading.Thread.Sleep(1000);
+                    readJSON(module, attrib);
+                }
+                if (module == "discord")
+                {
+                    if (Discord.ModuleActivated == false) { return new string[1] { "ERR_INVALID_MODULE_DISCORD" }; }
+                    switch (attrib)
+                    {
+                        case "apid":
+                            return ds.DiscordApid;
+
+                        case "apikey":
+                            return ds.DiscordApikey;
+
+                        default:
+                            return new string[1]{ "ERR_INVALID_ATTRIB" };
+                    }
+                }
+                else if (module == "mysql")
+                {
+                    if (Mysql.ModuleActivated == false) { return new string[1] { "ERR_INVALID_MODULE_MYSQL" }; }
+                    switch (attrib)
+                    {
+
+                        default:
+                            return new string[1] { "ERR_INVALID_ATTRIB" };
+                    }
+                }
+
+                return new string[1] { "ERR_INVALID_PARAMS" };
             }
 
 

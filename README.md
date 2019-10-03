@@ -33,9 +33,11 @@ Functions
 
     Discord:
         discord:send
-          - Arguments: [string SessionKey, string Message]
+          - Arguments: [string SessionKey, string Message, int ChannelSelect, bool IsRich]
           - Return Value: Boolean - true (Message Sent) or false (Message failed to send)
           - Summary: Makes a request to the specified webhook in config.json to send a Discord message
+          - Important Note: If IsRich is true, the message string must be formatted in a <Title, Color, EmbedName, EmbedContents> fashion seperated by semicolons. I.e "Hello World!;1;Im a webhook;Its true!"
+          - Colors range from 0 to 3 currently [0 = Green, 1 = Orange, 2 = Yellow, 3 = Red]
 
 Status Codes
 -----------------------------------
