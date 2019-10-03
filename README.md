@@ -1,4 +1,4 @@
-# ExtendedExtension
+# ArmaExtended
 An Arma 3 extension that incorporates Discord and MySql async functionality 
 
 Author: Slep. | Licence: GNU GPL v3
