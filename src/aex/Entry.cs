@@ -115,31 +115,5 @@ namespace aex
                 return 1;
             }
         }
-
-        public static object DebugEntry(string function, string[] args = null , int timeout = 0)
-        {
-            string fresult = "";
-            switch (function.ToLower())
-            {
-                case "discord.send":
-                        Discord.Send(args[0]);
-                    break;
-                case "mysql:async":
-                    bool Read = Convert.ToBoolean(args[1]);
-                    Task<string> SQLAsync = Mysql.ExecuteAsync(args[0], Read);
-                    SQLAsync.Start();
-                    SQLAsync.Wait();
-                    fresult = SQLAsync.Result;
-                    break;
-                case "utility:genkey":
-
-                default:
-                    fresult = "INVALID_FNC";
-                    break;
-            }
-
-            Thread.Sleep(timeout * 1000);
-            return fresult;
-        }
     }
 }

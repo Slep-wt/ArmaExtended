@@ -110,6 +110,7 @@ namespace aex
                         int response = await MySqlHelper.ExecuteNonQueryAsync(conn.Connection, query);
                         if (response == 1)
                         {
+                            conn.Close();
                             return "MYSQL_NQ_SUCCESS";
                         }
                         return "MYSQL_NQ_NOROWS";
@@ -123,6 +124,7 @@ namespace aex
                             {
                                 if (reader.FieldCount == 1)
                                 {
+                                    conn.Close();
                                     return reader[0].ToString();
                                 }
                                 else
@@ -138,6 +140,7 @@ namespace aex
                                 }
                             }
                             result += "]";
+                            conn.Close();
                             return result;
                         }
                     }
