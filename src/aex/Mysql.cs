@@ -133,7 +133,7 @@ namespace aex
                             int BufferIndex = 0;
                             while (SQLResultBuffer[BufferIndex] != null)
                             {
-                                BufferIndex = r.Next(0, 256);
+                                BufferIndex = r.Next(0, SQLResultBuffer.Length);
                             }
                             int DataIndex = (SplitResult.Length - 2);
                             SQLResultBuffer[BufferIndex] = SplitResult;
