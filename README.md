@@ -23,13 +23,25 @@ Functions
         load
           - Arguments: None
           - Return Value: SessionKey (string)
-          - Summary: Initialises all the modules and returns the active session key (Store that in a variable, any other function will not work without this)
+          - Summary: Initialises all the modules and returns the active session key (Store that in a variable, any other function will not work without this and it is only broadcast once)
 
     Mysql:
         mysql:async
           - Arguments: [string SessionKey, string Command, bool Read]
-          - Return Value: If Read is true, Returns a value fetched from a cell, Else returns a mysql:async status code (Read below)
+          - Return Values: 
+            - Case Read=false:            MYSQL_NQ_RESULT (NQ_NOROWS or NQ_SUCCESS)
+            - Case Read=true:             string Data
+            - Case Read=true, Data > 8kb: [string Data, [int BufferIndex, int DataIndex]]
           - Summary: An asynchronus function that handles reading and writing to and from a MySql Database
+          
+            
+
+        mysql:buffer
+           - Arguments: [int BufferIndex, int DataIndex]
+           - Return Value: [string BufferData, [int BufferIndex, int NewDataIndex]]
+           - Summary: Fetches data from the MySQL buffer at a BufferIndex, with data at the DataIndex.
+           - Notes:
+             - A data index of -1 indicates that there is no more data left to be read. Reading with a data index of -1 will result in a                MYSQL_BUFFER_BAD_INPUT error.
 
     Discord:
         discord:send
@@ -56,11 +68,14 @@ Status Codes
     MYSQL_REQUEST_FAILED
         - Failed to send the command/query to the server. Check config or connection for issues
 
+    MYSQL_BUFFER_BAD_INPUT
+        - Data at the provided indexes for BufferIndex and DataIndex is null.
+
     INIT_RL_REJECT
         - Attempted to reinitialise the extension (Blocked for security reasons regarding the SessionKey)
 
 
-When in doubt if something is working, check the latest log file generated in /logs, will display any exceptions or errors caught.
+When in doubt if something is working, check the latest log file generated in /Logs, will display any exceptions or errors caught.
 
 
 
