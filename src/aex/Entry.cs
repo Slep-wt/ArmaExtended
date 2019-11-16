@@ -64,7 +64,7 @@ namespace aex
                 else
                 {
                     Utility.Session.LogThis("[AEX::INIT] Blocked extension reload");
-                    output.Append(sessionid);
+                    output.Append("");
                 }
             }
         }
@@ -87,18 +87,72 @@ namespace aex
                 switch (function.ToLower())
                 {
                     case "discord:send":
-                        if (args.Length == 4)
-                            Discord.Send(args[1],args[2],args[3]);
+                        if (args.Length == 3)
+                            Discord.Send(args[1], args[2]);
+                        else
+                            output.Append("Discord:Send::INVALID_ARGS");
+                        break;
+                    case "discord:sendrich":
+                        if (args.Length == 5 || args.Length == 4 || args.Length == 3)
+                        {
+                            int color;
+                            switch (args[3].ToLower())
+                            {
+                                case "green":
+                                    color = Utility.EmbedColors[0];
+                                    break;
+                                case "orange":
+                                    color = Utility.EmbedColors[1];
+                                    break;
+                                case "yellow":
+                                    color = Utility.EmbedColors[2];
+                                    break;
+                                case "red":
+                                    color = Utility.EmbedColors[3];
+                                    break;
+                                default:
+                                    color = Utility.EmbedColors[0];
+                                    break;
+                            }
+                            if (args.Length == 5)
+                            {
+                                Discord.SendRich(args[1], color, args[2], args[3]);
+                            }
+                            else if (args.Length == 4)
+                            {
+                                Discord.SendRich(args[1], color, args[2]);
+                            }
+                            else
+                            {
+                                Discord.SendRich(args[1], color);
+                            }
+                        }
                         else
                             output.Append("Discord:Send::INVALID_ARGS");
                         break;
                     case "mysql:async":
                         if (args.Length == 3)
                         {
-                            bool Read = Convert.ToBoolean(args[2]);
-                            Task<string> SQLAsync = Mysql.ExecuteAsync(args[1], Read);
+                            Task<string> SQLAsync = Mysql.ExecuteAsync(args[1], Convert.ToBoolean(args[2]));
                             SQLAsync.Wait();
                             output.Append(SQLAsync.Result);
+                        }  else
+                            output.Append("Mysql:Async::INVALID_ARGS");
+                        break;
+                    case "mysql:buffer":
+                        if (args.Length == 3)
+                        {
+                            try
+                            {
+                                Task<string> SQLBuffer = Mysql.FetchBuffer(Convert.ToInt32(args[1]), Convert.ToInt32(args[2]));
+                                SQLBuffer.Wait();
+                                output.Append(SQLBuffer.Result);
+                            } catch (Exception e)
+                            {
+                                Utility.Session.LogThis(e.InnerException.ToString());
+                                output.Append("Mysql:Async::INVALID_ARGS");
+                            }
+
                         } else
                             output.Append("Mysql:Async::INVALID_ARGS");
                         break;

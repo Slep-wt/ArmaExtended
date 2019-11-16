@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
-
+using System.Linq;
 /*
 *	File: Mysql.cs
 *	Author: Slep.
@@ -21,66 +21,10 @@ namespace aex
         private static readonly int PortNumber = (int)Utility.JSON.readJSON("mysql", "port");
         private static readonly string DefaultDatabase = (string)Utility.JSON.readJSON("mysql", "database");
         internal static readonly string cstr = "Server= " + DatabaseAddress + ";Port= " + PortNumber + ";Database=" + DefaultDatabase + ";Uid=" + DatabaseUsername + ";Pwd=" + DatabasePassword + ";Pooling=false;";
+        internal static MySqlConnection conn = new MySqlConnection(cstr);
+        internal static readonly int MaxReturnSize = 8192;
 
-        private class SqlConnector : IDisposable
-        {
-            bool isDisposed = false;
-
-            private SqlConnector()
-            {
-            }
-
-            private string database = string.Empty;
-            public string Database { get => database;  set => database = value; }
-
-            private MySqlConnection connection = null;
-            public MySqlConnection Connection
-            {
-                get { return connection; }
-            }
-
-            private static SqlConnector instance = null;
-            public static SqlConnector Instance()
-            {
-                if (instance == null)
-                    instance = new SqlConnector();
-                return instance;
-            }
-
-            public bool IsConnect()
-            {
-                if (Connection == null)
-                {
-                    if (String.IsNullOrEmpty(database))
-                        return false;
-                    connection = new MySqlConnection(cstr);
-                    connection.Open();
-                }
-                return true;
-            }
-
-            public void Close()
-            {
-                connection.Close();
-            }
-
-            public void Dispose()
-            {
-                Dispose(true);
-                GC.SuppressFinalize(this);
-            }
-
-            protected virtual void Dispose(bool Disposing)
-            {
-                if (isDisposed)
-                    return;
-
-                if (Disposing)
-                {
-                    connection.Dispose();
-                }
-            }
-        }
+        internal static string[][] SQLResultBuffer = new string[256][];
 
         internal static void ModuleInit()
         {
@@ -91,66 +35,118 @@ namespace aex
             }
         }
 
-        public static async Task<string> ExecuteAsync(string query, bool read)
+        public static async Task<string> FetchBuffer(int BufferIndex,int DataIndex, bool FreeBuffer = false)
         {
-            query = query.Trim('"');
-            if (!ModuleActivated) return "MODULE_MYSQL_DISABLED";
-            SqlConnector conn = SqlConnector.Instance();
-            while (conn == null)
-            {
-                Console.WriteLine("Connection Null!");
-            }
-            conn.Database = DefaultDatabase;
             try
             {
-                if (conn.IsConnect())
+                if (DataIndex == 0) FreeBuffer = true;
+
+                string ToReturn = "[" + SQLResultBuffer[BufferIndex][DataIndex] + ",[" + (BufferIndex) + "," + (DataIndex - 1) + "]]";
+
+                if (FreeBuffer)
+                    SQLResultBuffer[BufferIndex] = null;
+                else
+                    Array.Resize(ref SQLResultBuffer[BufferIndex], SQLResultBuffer[BufferIndex].Length - 1);
+
+                return ToReturn;
+            } catch (Exception e)
+            {
+                Utility.Session.LogThis(e);
+                return "[`BAD_BUFFER`,"+BufferIndex+","+DataIndex+"]";
+            }
+
+        }
+
+        internal static string[] SplitString(string str)
+        {
+            int i, ei, si= 1;
+            string[] rs = new string[256];
+            i = 1;
+            while (i <= str.Length / MaxReturnSize + 1)
+            {
+                si = (i - 1) * MaxReturnSize;
+                ei = i * MaxReturnSize;
+                if (ei > MaxReturnSize)
                 {
-                    if (!read)
+                    ei = str.Length - (si);
+                }
+                rs.SetValue(str.Substring(si, ei), i - 1);
+                i++;
+            }
+            rs = rs.Where(c => c != null).ToArray();
+            return rs;
+        }
+
+        public static async Task<string> ExecuteAsync(string query, bool read)
+        {
+            if (!ModuleActivated) return "MODULE_MYSQL_DISABLED";
+            query = query.Trim('"');
+            try
+            {
+                conn.Open();
+                if (conn.State != System.Data.ConnectionState.Open) throw new System.Exception("Mysql connection is not in the open state.");
+                if (!read)
+                {
+                    int response = await MySqlHelper.ExecuteNonQueryAsync(conn, query);
+                    if (response >= 1)
                     {
-                        int response = await MySqlHelper.ExecuteNonQueryAsync(conn.Connection, query);
-                        if (response == 1)
-                        {
-                            conn.Close();
-                            return "MYSQL_NQ_SUCCESS";
-                        }
-                        return "MYSQL_NQ_NOROWS";
+                        conn.Close();
+                        return "MYSQL_NQ_SUCCESS";
                     }
-                    else
+                    conn.Close();
+                    return "MYSQL_NQ_NOROWS";
+                }
+                else
+                {
+                    string result = "[";
+                    
+                    using (MySqlDataReader reader = MySqlHelper.ExecuteReader(conn, query))
                     {
-                        using (MySqlDataReader reader = MySqlHelper.ExecuteReader(conn.Connection, query))
+                        while (reader.Read())
                         {
-                            string result = "[";
-                            while (reader.Read())
+                            if (reader.FieldCount == 1)
+                                result = reader[0].ToString();
+                            else
                             {
-                                if (reader.FieldCount == 1)
+                                for (var i = 0; i < reader.FieldCount; i++)
                                 {
-                                    conn.Close();
-                                    return reader[0].ToString();
-                                }
-                                else
-                                {
-                                    for (var i = 0; i < reader.FieldCount; i++)
-                                    {
-                                        string stripped = reader[i].ToString();
-                                        if (i == 0)
-                                            result += stripped;
-                                        else
-                                            result += ", " + stripped;
-                                    }
+                                    string stripped = reader[i].ToString();
+                                    if (i == 0)
+                                        result += stripped;
+                                    else
+                                        result += ", " + stripped;
                                 }
                             }
-                            result += "]";
-                            conn.Close();
-                            return result;
                         }
+                        if (reader.FieldCount > 1)
+                        {
+                            result += "]";
+                        }
+                        reader.Close();
+                        conn.Close();
+                        if (System.Text.Encoding.UTF8.GetByteCount(result) > MaxReturnSize)
+                        {
+                            string[] SplitResult = SplitString(result);
+                            Utility.Session.LogThis(SplitResult.Length);
+                            Array.Reverse(SplitResult);
+                            Random r = new Random();
+                            int BufferIndex = 0;
+                            while (SQLResultBuffer[BufferIndex] != null)
+                            {
+                                BufferIndex = r.Next(0, 256);
+                            }
+                            int DataIndex = (SplitResult.Length - 2);
+                            SQLResultBuffer[BufferIndex] = SplitResult;
+                            return ("[`" + SplitResult[SplitResult.Length - 1] + "`,[" + BufferIndex + "," + DataIndex + "]]");
+                        }
+                        return result;
                     }
                 }
-                return "MYSQL_REQUEST_FAILED";
             }
             catch (MySqlException e)
             {
                 Utility.Session.LogThis("[AEX::MYSQL::ERROR] " + e.Message);
-                return "MYSQL_REQUEST_EXCEPTION";
+                return "MYSQL_REQUEST_FAILED_EXCEPTION";
             }
         }
     }

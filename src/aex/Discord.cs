@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Threading.Tasks;
 using System.Net;
 
 /*
@@ -16,6 +19,7 @@ namespace aex
         internal static bool ModuleActivated = true;
         internal static readonly string[] apid = (string[])Utility.JSON.readJSONArray("discord","apid");
         internal static readonly string[] apikey = (string[])Utility.JSON.readJSONArray("discord","apikey");
+        internal static readonly string[] channels = (string[])Utility.JSON.readJSONArray("discord","channels"); 
         internal static readonly string hookname = (string)Utility.JSON.readJSON("discord","username");
         internal static readonly string avatar = (string)Utility.JSON.readJSON("discord","avatar");
         internal static void ModuleInit()
@@ -27,40 +31,68 @@ namespace aex
             }
         }
 
-        internal static bool Send(string args, string channel_select, string isRich)
+        internal static async void SendRich(string args, int color = 0, string hook_select = "0", string channel_select = "0")
         {
-            if (!ModuleActivated || !Int32.TryParse(channel_select, out int channel)) throw new Exception("Module deactivated or input variables incorrect."); ;
+            if (!ModuleActivated || !Int32.TryParse(channel_select, out int channel) || (Int32.TryParse(hook_select, out int hook))) throw new Exception("Module deactivated or input variables incorrect.");
             try
             {
-                bool embeds = bool.Parse(isRich);
-                string capid = apid[channel];
-                string capikey = apikey[channel];
-
+                string capid = apid[hook];
+                Utility.Session.LogThis(capid);
+                string capikey = apikey[hook];
+                string cid = channels[channel];
+                Utility.Session.LogThis(capikey);
                 args = args.Replace("\"", "");
+                List<string> toUtility = new List<string>();
+                foreach (string x in args.Split(';'))
+                    toUtility.Add(x);
+                toUtility.Add(cid);
 
-                object[] toUtility = args.Split(';');
-                Int32.TryParse((string)toUtility[1], out int im);
-                toUtility[1] = im;
-                if (!(im >= 0 && im <= 3)) throw new Exception("Colour variable in request was outside of the common bounds.");
-                if (toUtility[0].ToString().ToCharArray().Length > 1999 && !embeds)
-                {
-                    return false;
-                }
-
-                var fcontent = Utility.JSON.formatRequest(toUtility, embeds);
-
+                var fcontent = Utility.JSON.formatRequestRich(toUtility.ToArray(),color);
                 using (var req = new WebClient())
                 {
                     Uri exturl = new Uri("https://discordapp.com/api/webhooks/" + capid + @"\" + capikey, UriKind.Absolute);
                     req.Headers.Add(HttpRequestHeader.ContentType, "application/json");
                     req.UploadStringCompleted += Req_UploadStringCompleted;
-                    req.UploadStringAsync(exturl, "POST", fcontent);
+                    await req.UploadStringTaskAsync(exturl, "POST", fcontent);
                 }
-                return true;
+                return;
+            }
+            catch (Exception e)
+            {
+                Utility.Session.LogThis("[AEX::EXCEPTION] " + e.ToString());
+                return;
+            }
+        }
+
+        internal static async void Send(string Args, string HookSelect = "0", string ChannelSelect = "0")
+        {
+            if (!ModuleActivated || !Int32.TryParse(ChannelSelect, out int channel) || !Int32.TryParse(HookSelect, out int hook)) throw new Exception("Module deactivated or input variables incorrect.");
+            try
+            {
+                string capid = apid[hook];
+                Utility.Session.LogThis(capid);
+                string cid = channels[channel];
+                string capikey = apikey[hook];
+                Utility.Session.LogThis(capikey);
+
+                Args = Args.Replace("\"", "");
+                if (Args.Length > 1999)
+                    throw new ArgumentException("The input argument exceeded 1999 characters.");
+
+                var fcontent = Utility.JSON.formatRequest(Args, cid);
+                using (var req = new WebClient())
+                {
+                    Uri exturl = new Uri("https://discordapp.com/api/webhooks/" + capid + @"\" + capikey, UriKind.Absolute);
+                    req.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+                    req.UploadStringCompleted += Req_UploadStringCompleted;
+                    await req.UploadStringTaskAsync(exturl, "POST", fcontent);
+
+                }
+                return;
             } catch (Exception e)
             {
                 Utility.Session.LogThis("[AEX::EXCEPTION] " + e.ToString());
-                return false;
+                return;
             }
         }
 

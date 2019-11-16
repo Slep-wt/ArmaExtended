@@ -29,11 +29,22 @@ namespace aex
         public static readonly string CfgDir = Dir + @"\cfg";
         public static readonly string CfgJson = Dir + @"\cfg\config.json";
         public static readonly string LogDir = Dir + @"\Logs";
-
         public static readonly string rundate = DateTime.Now.ToString("dd-MM-yyyy_hh-mm-ss");
+
+#if is64
+        public static readonly string Filename = "aex_x64_" + rundate + ".log";
+#else
+        public static readonly string Filename = "aex_x86_" + rundate + ".log";
+#endif
 
         internal static readonly char[] Alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890".ToCharArray();
         internal static readonly int AlphabetLength = Alphabet.Length;
+
+
+        public static int Ciel(int a, int b)
+        {
+            return (a + b - 1) / b;
+        }
 
         public class Session
         {
@@ -57,22 +68,20 @@ namespace aex
                 }
             }
 
-
-            internal static async void LogThis(string input)
+            internal static async void LogThis(object input)
             {
                 if (Directory.Exists(LogDir))
                 {
-                    string filename;
-
-                    if (x64)
-                        filename = "aex_x64_" + rundate + ".log";
-                    else
-                        filename = "aex_x86_" + rundate + ".log";
-                    
-                    using (var sw = new StreamWriter(LogDir + @"\" + filename, true, Encoding.UTF8))
+                    try
                     {
-                        string curdate = DateTime.Now.ToString(@"[dd/MM/yyyy hh:mm:ss] ");
-                        await sw.WriteLineAsync(curdate + input);
+                        using (StreamWriter sw = new StreamWriter(LogDir + @"\" + Filename, true, Encoding.UTF8))
+                        {
+                            string curdate = DateTime.Now.ToString(@"[dd/MM/yyyy hh:mm:ss]");
+                            await sw.WriteLineAsync(curdate + input);
+                        }
+                    } catch (Exception e)
+                    {
+                        LogThis(input);
                     }
                 }
                 else
@@ -102,6 +111,9 @@ namespace aex
                 [JsonProperty("DiscordApikey")]
                 public string[] DiscordApikey;
 
+                [JsonProperty("DiscordChannels")]
+                public string[] DiscordChannels;
+
                 [JsonProperty("EnableMysql")]
                 public bool EnableMysql;
 
@@ -123,7 +135,7 @@ namespace aex
                 [JsonProperty("EnableDebug")]
                 public bool EnableDebug;
             }
-            
+
             internal class RequestFormat
             {
                 [JsonProperty("username")]
@@ -132,11 +144,26 @@ namespace aex
                 [JsonProperty("avatar_url")]
                 public string avatar_url;
 
-                [JsonProperty("embeds")]
-                public Embeds EmbedContent;
+                [JsonProperty("channel_id")]
+                public string channelid;
 
-                [JsonProperty("contents")]
-                public string contents;
+                [JsonProperty("content")]
+                public string content;
+            }
+
+            internal class RichRequestFormat
+            {
+                [JsonProperty("username")]
+                public string username;
+
+                [JsonProperty("avatar_url")]
+                public string avatar_url;
+
+                [JsonProperty("channel_id")]
+                public string channelid;
+
+                [JsonProperty("embeds")]
+                public Embeds[] EmbedContent;
 
                 public class Embeds
                 {
@@ -147,7 +174,7 @@ namespace aex
                     public int color;
 
                     [JsonProperty("fields")]
-                    public Fields FieldsContent;
+                    public Fields[] FieldsContent;
 
                     internal class Fields
                     {
@@ -167,8 +194,10 @@ namespace aex
                     EnableDiscord = true,
                     DiscordUsername = "<Add the username of your webhook here>",
                     DiscordAvatar = "<Add the url to the avatar of your webhook here>",
-                    DiscordApid = new string[]{ "<Add your webhook ID's here seperated by commas>", "<Example ID 1>", "<Example ID 2>" },
-                    DiscordApikey = new string[]{ "<Add your webhook private keys here seperated by commas>","<Example Private Key 1>", "<Example Private Key 2>" },
+                    DiscordApid = new string[] { "<Add your webhook ID's here seperated by commas>", "<Example ID 1>", "<Example ID 2>" },
+                    DiscordApikey = new string[] { "<Add your webhook private keys here seperated by commas>", "<Example Private Key 1>", "<Example Private Key 2>" },
+                    DiscordChannels = new string[] { "<Add your webhook channels here seperated by commas>", "<Example Channel 1>", "<Example Channel 2>" },
+
 
                     EnableMysql = true,
 
@@ -182,7 +211,7 @@ namespace aex
                 };
 
                 var serialiser = new JsonSerializer();
-                    
+
                 using (var sw = new StreamWriter(CfgJson, false))
                 using (var jsw = new JsonTextWriter(sw))
                 {
@@ -191,43 +220,50 @@ namespace aex
                 }
                 Session.LogThis("[AEX::JSON] Created config.json in cfg directory.");
                 return true;
-                
+
             }
 
-            public static string formatRequest(object[] input, bool isEmbed = false)
+            public static string formatRequest(string input, string cid)
             {
-
                 string result;
-                if (isEmbed)
+                RequestFormat req = new RequestFormat
                 {
-                    RequestFormat req = new RequestFormat
-                    {
-                        username = Discord.hookname,
-                        avatar_url = Discord.avatar,
-                        EmbedContent = new RequestFormat.Embeds
+                    username = Discord.hookname,
+                    avatar_url = Discord.avatar,
+                    channelid = cid,
+                    content = input
+                };
+                result = JsonConvert.SerializeObject(req, Formatting.Indented);
+                Session.LogThis(result);
+                return result;
+            }
+
+            public static string formatRequestRich(string[] input, int colour)
+            {
+                string result;
+                RichRequestFormat req = new RichRequestFormat
+                {
+                    username = Discord.hookname,
+                    avatar_url = Discord.avatar,
+                    channelid = input[3],
+                    EmbedContent = new RichRequestFormat.Embeds[] {
+                        new RichRequestFormat.Embeds
                         {
-                            title = (string)input[0],
-                            color = EmbedColors[(int)input[1]],
-                            FieldsContent = new RequestFormat.Embeds.Fields
+                            title = input[0],
+                            color = colour,
+                            FieldsContent = new RichRequestFormat.Embeds.Fields[]
                             {
-                                name = (string)input[2],
-                                fcontent = (string)input[3]
+                                new RichRequestFormat.Embeds.Fields
+                                {
+                                     name = input[1],
+                                     fcontent = input[2]
+                                }
                             }
                         }
-                    };
-                    result = JsonConvert.SerializeObject(req, Formatting.Indented);
-                }
-                else
-                {
-                    RequestFormat req = new RequestFormat
-                    {
-                        username = Discord.hookname,
-                        avatar_url = Discord.avatar,
-                        contents = (string)input[0]
-                    };
-                    result = JsonConvert.SerializeObject(req, Formatting.Indented);
-                }
-
+                    }
+                };
+                result = JsonConvert.SerializeObject(req, Formatting.Indented);
+                Session.LogThis(result);
                 return result;
             }
 
@@ -363,7 +399,6 @@ namespace aex
                             return "ERR_INVALID_ATTRIB";
                     }
                 }
-
                 return "ERR_INVALID_PARAMS";
             }
         }
