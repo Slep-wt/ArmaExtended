@@ -52,7 +52,7 @@ namespace aex
             } catch (Exception e)
             {
                 Utility.Session.LogThis(e);
-                return "[`BAD_BUFFER`,"+BufferIndex+","+DataIndex+"]";
+                return "[\"MYSQL_BUFFER_BAD_INPUT\","+BufferIndex+","+DataIndex+"]";
             }
 
         }
@@ -137,7 +137,7 @@ namespace aex
                             }
                             int DataIndex = (SplitResult.Length - 2);
                             SQLResultBuffer[BufferIndex] = SplitResult;
-                            return ("[`" + SplitResult[SplitResult.Length - 1] + "`,[" + BufferIndex + "," + DataIndex + "]]");
+                            return ("[\"" + SplitResult[SplitResult.Length - 1] + "\",[" + BufferIndex + "," + DataIndex + "]]");
                         }
                         return result;
                     }
