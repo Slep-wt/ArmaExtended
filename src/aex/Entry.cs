@@ -17,7 +17,7 @@ namespace aex
 {
     public class EntryPoint
     {
-        public static bool init = false;
+        internal static bool init = false;
         internal static string sessionid = Utility.Session.CreateID();
         internal static string[] modules = { "Discord Disabled", "MySql Disabled" };
         internal static readonly string version = "1.0.00";
@@ -44,7 +44,6 @@ namespace aex
             {
                 if (!init)
                 {
-                    init = true;
                     try
                     {
                         Utility.Session.LogThis("[AEX::INIT] Current SessionID: " + sessionid);
@@ -53,13 +52,16 @@ namespace aex
                         Mysql.ModuleInit();
                         string ActiveModules = "[AEX::INIT::MODULES] " + modules[0] + " | " + modules[1];
                         Utility.Session.LogThis(ActiveModules);
+                        init = true;
                     }
                     catch (Exception e)
                     {
                         Utility.Session.LogThis("[AEX::EXCEPTION] " + e.ToString());
                     }
-
-                    output.Append(sessionid);
+                    if (!init)
+                    {
+                        output.Append(sessionid);
+                    }
                 }
                 else
                 {
