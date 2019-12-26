@@ -87,7 +87,7 @@ namespace aex
         internal static bool init = false;
         internal static string sessionid = Utility.Session.CreateID();
         internal static string[] modules = { "Discord Disabled", "MySql Disabled" };
-        internal static readonly string version = "1.0.00";
+        internal static readonly string version = "1.0.10";
 #if A3COMPAT
 #if is64
         [DllExport("RVExtensionVersion", CallingConvention = CallingConvention.Winapi)]
