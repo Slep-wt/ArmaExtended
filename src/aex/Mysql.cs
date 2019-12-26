@@ -22,9 +22,9 @@ namespace aex
         private static readonly string DefaultDatabase = (string)Utility.JSON.readJSON("mysql", "database");
         internal static readonly string cstr = "Server= " + DatabaseAddress + ";Port= " + PortNumber + ";Database=" + DefaultDatabase + ";Uid=" + DatabaseUsername + ";Pwd=" + DatabasePassword + ";Pooling=false;";
         internal static MySqlConnection conn = new MySqlConnection(cstr);
-        internal static readonly int MaxReturnSize = 8192;
+        internal static readonly int MaxReturnSize = (int)Utility.JSON.readJSON("misc", "datamaxreturn");
 
-        internal static string[][] SQLResultBuffer = new string[256][];
+        internal static string[][] SQLResultBuffer = new string[(int)Utility.JSON.readJSON("mysql", "buffer")][];
 
         internal static void ModuleInit()
         {

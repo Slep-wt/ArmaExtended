@@ -132,6 +132,12 @@ namespace aex
                 [JsonProperty("MysqlDatabase")]
                 public string MysqlDatabase;
 
+                [JsonProperty("MysqlBufferSize")]
+                public int MysqlBufferSize;
+
+                [JsonProperty("DataMaxReturnSize")]
+                public int DataMaxReturnSize;
+
                 [JsonProperty("EnableDebug")]
                 public bool EnableDebug;
             }
@@ -300,9 +306,10 @@ namespace aex
                     {
                         case "apid":
                             return ds.DiscordApid;
-
                         case "apikey":
                             return ds.DiscordApikey;
+                        case "channels":
+                            return ds.DiscordChannels;
 
                         default:
                             return new string[1]{ "ERR_INVALID_ATTRIB" };
@@ -391,12 +398,23 @@ namespace aex
 
                         case "database":
                             return ds.MysqlDatabase;
-
+                        case "buffer":
+                            return ds.MysqlBufferSize;
                         case "enable":
                             return ds.EnableMysql;
 
                         default:
                             return "ERR_INVALID_ATTRIB";
+                    }
+                }
+                else if (module == "misc")
+                {
+                    switch (attrib)
+                    {
+                        case "datamaxreturn":
+                            return ds.DataMaxReturnSize;
+                        case "enabledebug":
+                            return ds.EnableDebug;
                     }
                 }
                 return "ERR_INVALID_PARAMS";
