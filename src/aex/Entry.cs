@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
-
 /*
 *	File: Entry.cs
 *	Author: Slep.
@@ -18,7 +17,7 @@ using System.Collections.Generic;
 
 #if !A3COMPAT
 using System.Text.RegularExpressions;
-class main
+class DebugMain
 {
     static Regex cr = new Regex(@"(\[.*?\])|(\"".*?\"")|(\d)");
     static bool Loaded = false;
@@ -35,6 +34,8 @@ class main
             Loaded = true;
         }
 
+        Console.WriteLine("Syntax: {[command], \"<params>\", ...}");
+
         while (!exit)
         {
             try
@@ -43,16 +44,12 @@ class main
                 MatchCollection cm = cr.Matches(cmd);
                 List<string> parameters = new List<string>();
                 string command = "";
-
                 parameters.Add(sid);
-
                 foreach (Match x in cm)
                 {
                     string y = x.ToString();
-                    Console.WriteLine(y);
                     if (y.StartsWith("[")) {
                         command = y.Trim(new char[] { '[', ']' });
-                        Console.WriteLine(command);
                     } else if (y.StartsWith("\""))
                         parameters.Add(y.Trim(new char[] { '"', '"' }));
                     else
@@ -67,7 +64,7 @@ class main
                 else
                     aex.EntryPoint.RvExtension(ref output, 1024, command);
 
-                Console.Write(output.ToString());
+                Console.WriteLine(output.ToString());
                 output.Clear();
             }
             catch (Exception e)
@@ -90,9 +87,9 @@ namespace aex
         internal static readonly string version = "1.0.10";
 #if A3COMPAT
 #if is64
-        [DllExport("RVExtensionVersion", CallingConvention = CallingConvention.Winapi)]
+        [DllExport("RVExtensionVersion", CallingConvention = CallingConvention.StdCall)]
 #else
-        [DllExport("_RVExtensionVersion@8", CallingConvention = CallingConvention.Winapi)]
+        [DllExport("_RVExtensionVersion@8", CallingConvention = CallingConvention.StdCall)]
 #endif
 #endif
         public static void RvExtensionVersion(ref StringBuilder output, int outputSize)
@@ -103,9 +100,9 @@ namespace aex
 
 #if A3COMPAT
 #if is64
-        [DllExport("RVExtension", CallingConvention = CallingConvention.Winapi)]
+        [DllExport("RVExtension", CallingConvention = CallingConvention.StdCall)]
 #else
-        [DllExport("_RVExtension@12", CallingConvention = CallingConvention.Winapi)]
+        [DllExport("_RVExtension@12", CallingConvention = CallingConvention.StdCall)]
 #endif
         public static void RvExtension(StringBuilder output, int outputSize, [MarshalAs(UnmanagedType.LPStr)] string function)
 #else
@@ -142,11 +139,11 @@ namespace aex
         }
 
 #if A3COMPAT
-#if is64
-        [DllExport("RVExtensionArgs", CallingConvention = CallingConvention.Winapi)]
-#else
-        [DllExport("_RVExtensionArgs@20", CallingConvention = CallingConvention.Winapi)]
-#endif
+    #if is64
+        [DllExport("RVExtensionArgs", CallingConvention = CallingConvention.StdCall)]
+    #else
+        [DllExport("_RVExtensionArgs@20", CallingConvention = CallingConvention.StdCall)]
+    #endif
         public static int RvExtensionArgs(StringBuilder output, int outputSize, 
             [MarshalAs(UnmanagedType.LPStr)] string function, 
             [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.LPStr, SizeParamIndex = 4)] string[] args, int argCount)

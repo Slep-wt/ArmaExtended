@@ -1,4 +1,7 @@
 *.dll
+*.exe
 src/packages
 src/aex/bin
+src/aex/obj
+
 .vs/
